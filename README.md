@@ -61,6 +61,17 @@ Use [UptimeRobot](https://uptimerobot.com/) to ping the `/health` endpoint to ke
 - Embed Links
 - Read Message History
 
+## SU Client
+
+CLI tool to control the bot remotely. See [su-client/README.md](su-client/README.md).
+
+```bash
+cd su-client && bun install
+su send <channelId> "Hello!"
+su status "Playing su!smite"
+su guilds
+```
+
 ## Made by
 
 **Li Productions** - [github.com/goldstac/su-bot](https://github.com/goldstac/su-bot)
