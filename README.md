@@ -8,6 +8,7 @@ Like `sudo su`, but for smiting mortals.
 |---------|-------------|
 | `su!smite @user` | Smite a user with animated lightning |
 | `su!smite @user ?r reason` | Smite with a custom reason |
+| `su!afk [reason]` | Set yourself as AFK |
 | `su!ping` | Check bot and API latency |
 | `su!help` | List all commands |
 | `su!version` | Show bot version |
