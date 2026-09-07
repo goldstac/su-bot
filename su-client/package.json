@@ -1,0 +1,11 @@
+{
+  "name": "su-client",
+  "version": "1.0.0",
+  "type": "module",
+  "bin": {
+    "su": "./cli.ts"
+  },
+  "dependencies": {
+    "commander": "^13.1.0"
+  }
+}

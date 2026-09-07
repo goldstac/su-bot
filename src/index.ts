@@ -4,6 +4,7 @@ import {
   Collection,
   Events,
   Message,
+  TextChannel,
 } from "discord.js";
 import express from "express";
 import { handleSmite } from "./commands/smite";
@@ -15,8 +16,10 @@ import { handleAfk, checkAfkRemove, checkAfkMention } from "./commands/afk";
 
 const PREFIX = "su!";
 const processed = new Set<string>();
+const API_KEY = process.env.API_KEY || "su-bot-api-key";
 
 const app = express();
+app.use(express.json());
 
 app.get("/", (req, res) => {
   res.send("SU Bot is running! ⚡");
@@ -24,6 +27,87 @@ app.get("/", (req, res) => {
 
 app.get("/health", (req, res) => {
   res.json({ status: "ok", uptime: process.uptime() });
+});
+
+// API endpoints for su-client
+app.post("/api/send", async (req, res) => {
+  if (req.headers.authorization !== API_KEY) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  const { channelId, content } = req.body;
+  if (!channelId || !content) {
+    return res.status(400).json({ error: "channelId and content required" });
+  }
+  try {
+    const channel = await client.channels.fetch(channelId);
+    if (!channel || !("send" in channel)) {
+      return res.status(404).json({ error: "Channel not found" });
+    }
+    await (channel as TextChannel).send(content);
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/status", async (req, res) => {
+  if (req.headers.authorization !== API_KEY) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  const { status, type } = req.body;
+  if (!status) {
+    return res.status(400).json({ error: "status required" });
+  }
+  try {
+    client.user?.setActivity(status, { type: type || 0 });
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/nickname", async (req, res) => {
+  if (req.headers.authorization !== API_KEY) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  const { guildId, nickname } = req.body;
+  if (!guildId) {
+    return res.status(400).json({ error: "guildId required" });
+  }
+  try {
+    const guild = await client.guilds.fetch(guildId);
+    await guild.members.me?.setNickname(nickname || "");
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/guilds", async (req, res) => {
+  if (req.headers.authorization !== API_KEY) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  const guilds = client.guilds.cache.map((g) => ({
+    id: g.id,
+    name: g.name,
+    memberCount: g.memberCount,
+  }));
+  res.json({ guilds });
+});
+
+app.get("/api/channels/:guildId", async (req, res) => {
+  if (req.headers.authorization !== API_KEY) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  try {
+    const guild = await client.guilds.fetch(req.params.guildId);
+    const channels = guild.channels.cache
+      .filter((c) => c.type === 0)
+      .map((c) => ({ id: c.id, name: c.name }));
+    res.json({ channels });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 const PORT = process.env.PORT || 3000;
