@@ -11,6 +11,7 @@ import { handlePing } from "./commands/ping";
 import { handleCredits } from "./commands/credits";
 import { handleVersion } from "./commands/version";
 import { handleHelp } from "./commands/help";
+import { handleAfk, checkAfkRemove, checkAfkMention } from "./commands/afk";
 
 const PREFIX = "su!";
 const processed = new Set<string>();
@@ -45,6 +46,13 @@ client.once(Events.ClientReady, (readyClient) => {
 
 client.on(Events.MessageCreate, async (message: Message) => {
   if (message.author.bot) return;
+
+  // Check AFK - remove if user sends a message
+  checkAfkRemove(message);
+
+  // Check AFK - notify if a mentioned user is AFK
+  await checkAfkMention(message);
+
   if (!message.content.startsWith(PREFIX)) return;
   if (processed.has(message.id)) return;
   processed.add(message.id);
@@ -63,6 +71,8 @@ client.on(Events.MessageCreate, async (message: Message) => {
     await handleVersion(message);
   } else if (command === "help") {
     await handleHelp(message);
+  } else if (command === "afk") {
+    await handleAfk(message, args);
   }
 });
 
