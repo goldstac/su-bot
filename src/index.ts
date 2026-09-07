@@ -69,7 +69,8 @@ client.on(Events.MessageCreate, async (message: Message) => {
 const token = process.env.DISCORD_TOKEN;
 if (!token) {
   console.error("❌ Missing DISCORD_TOKEN in environment variables");
-  process.exit(1);
+} else {
+  client.login(token).catch((err) => {
+    console.error("❌ Failed to login to Discord:", err.message);
+  });
 }
-
-client.login(token);
