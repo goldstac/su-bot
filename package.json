@@ -1,0 +1,22 @@
+{
+  "name": "smite-bot",
+  "module": "src/index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "dev": "bun --hot run src/index.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/express": "^5.0.6"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "canvas": "^3.2.3",
+    "discord.js": "^14.27.0",
+    "express": "^5.2.1"
+  }
+}
