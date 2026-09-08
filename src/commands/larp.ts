@@ -141,6 +141,26 @@ const LARP_EVENTS = [
   { name: "FUSION!", emoji: "🔗", bonus: 4, desc: "They fused with another entity!", rarity: "rare" },
 ];
 
+// DEADLY JOB EVENTS
+const LARP_JOB_EVENTS = [
+  { name: "HIRED!", emoji: "💼", bonus: 3, desc: "They got the job... but at what cost?", rarity: "common", jobs: ["job", "job application", "ceo", "intern", "manager"] },
+  { name: "FIRED!", emoji: "🔥", bonus: -2, desc: "They got fired on the first day", rarity: "common", jobs: ["job", "job application", "ceo", "intern", "manager", "accountant"] },
+  { name: "PROMOTED!", emoji: "📈", bonus: 5, desc: "Employee of the month!", rarity: "rare", jobs: ["job", "ceo", "manager", "engineer"] },
+  { name: "LAWSUIT!", emoji: "⚖️", bonus: 4, desc: "They're suing everyone", rarity: "rare", jobs: ["lawyer", "doctor", "engineer", "programmer"] },
+  { name: "OVERTIME!", emoji: "⏰", bonus: 2, desc: "72 hours straight. No sleep. Only work.", rarity: "uncommon", jobs: ["programmer", "engineer", "doctor", "chef"] },
+  { name: "KAREN DETECTED!", emoji: "💳", bonus: 6, desc: "I WANT TO SPEAK TO THE MANAGER", rarity: "legendary", jobs: ["Karen", "retail", "waiter"] },
+  { name: "MINIMUM WAGE!", emoji: "💵", bonus: 0, desc: "$7.25/hour. Dreams shattered.", rarity: "common", jobs: ["retail", "waiter", "intern", "chef"] },
+  { name: "CORPORATE MERGE!", emoji: "🏢", bonus: 4, desc: "The company merged. Nobody knows what they do now.", rarity: "rare", jobs: ["ceo", "manager", "accountant", "lawyer"] },
+  { name: "COFFEE SPILL!", emoji: "☕", bonus: -1, desc: "Destroyed the entire server room", rarity: "common", jobs: ["programmer", "engineer", "intern"] },
+  { name: "SYNERGY!", emoji: "🤝", bonus: 5, desc: "They synergized so hard the building shook", rarity: "legendary", jobs: ["ceo", "manager", "lawyer"] },
+  { name: "RESTRUCTURING!", emoji: "📊", bonus: 3, desc: "Your department no longer exists", rarity: "uncommon", jobs: ["job", "ceo", "manager", "accountant"] },
+  { name: "REMOTE WORK!", emoji: "🏠", bonus: 4, desc: "Working from home in pajamas. Power move.", rarity: "rare", jobs: ["programmer", "engineer", "manager"] },
+  { name: "BILLABLE HOURS!", emoji: "💰", bonus: 5, desc: "$500/hour and they charge for breathing", rarity: "legendary", jobs: ["lawyer", "doctor", "engineer"] },
+  { name: "DEADLINE CRUNCH!", emoji: "📉", bonus: 2, desc: "Due yesterday. Panic mode activated.", rarity: "uncommon", jobs: ["programmer", "engineer", "chef", "designer"] },
+  { name: "EMAIL CHAIN!", emoji: "📧", bonus: -1, desc: "Reply all. 47 messages. None of them useful.", rarity: "common", jobs: ["job", "ceo", "manager", "accountant"] },
+  { name: "REVENUE STREAM!", emoji: "💸", bonus: 6, desc: "Money is flowing. They are unstoppable.", rarity: "legendary", jobs: ["ceo", "manager", "lawyer", "accountant"] },
+];
+
 const LARP_EMOJIS: Record<string, string[]> = {
   dragon: ["🐉", "🔥", "💀"], wizard: ["🧙", "✨", "🔮"],
   knight: ["⚔️", "🛡️", "🏰"], god: ["⚡", "👑", "🌟"],
@@ -149,6 +169,14 @@ const LARP_EMOJIS: Record<string, string[]> = {
   cat: ["🐱", "😺", "😸"], dog: ["🐶", "🦴", "🐕"],
   chicken: ["🐔", "🍗", "🐓"], banana: ["🍌", "💛", "😂"],
   potato: ["🥔", "😂", "💀"], spoon: ["🥄", "✨", "🫠"],
+  // DEADLY JOBS
+  job: ["💼", "📊", "💰", "🔪", "💀"], "job application": ["📋", "💼", "✍️", "💀", "⚰️"],
+  ceo: ["💼", "💰", "🏦", "🗡️", "💀"], intern: ["📎", "☕", "📋", "😭", "💀"],
+  manager: ["👔", "📊", "💼", "🔪", "💀"], accountant: ["🔢", "💰", "📊", "💀", "⚰️"],
+  lawyer: ["⚖️", "📜", "💼", "🗡️", "💀"], doctor: ["💉", "🩺", "🏥", "💀", "⚰️"],
+  engineer: ["⚙️", "🔧", "💻", "💀", "⚰️"], programmer: ["💻", "🐛", "☕", "💀", "⚰️"],
+  chef: ["👨‍🍳", "🔪", "🍳", "💀", "☠️"], waiter: ["🍽️", "😤", "📋", "💀", "⚰️"],
+  retail: ["🛒", "😤", "💀", "😭", "⚰️"], Karen: ["💳", "Manager", "📱", "💀", "☠️"],
   default: ["🎭", "✨", "⚡", "🔥", "💀", "🗡️", "🛡️", "👑", "🌙", "🔮"],
 };
 
@@ -265,10 +293,15 @@ export async function handleLarp(message: Message, args: string[]): Promise<void
   const totalEventChance = Math.min(baseEventChance + eventBonus, 0.9);
   const hasEvent = Math.random() < totalEventChance;
 
+  // Check if this is a job-related larp
+  const jobKeywords = ["job", "job application", "ceo", "intern", "manager", "accountant", "lawyer", "doctor", "engineer", "programmer", "chef", "waiter", "retail", "karen"];
+  const isJobLarp = jobKeywords.some(k => target.toLowerCase().includes(k));
+
   let event = null;
   if (hasEvent) {
     const roll = Math.random();
-    let pool = LARP_EVENTS;
+    // Mix in job events for job larps
+    let pool = isJobLarp ? [...LARP_EVENTS, ...LARP_JOB_EVENTS.filter(e => e.jobs.some(j => target.toLowerCase().includes(j)))] : LARP_EVENTS;
     if (user.skills.mysticism) pool = pool.filter(e => e.rarity !== "legendary" || Math.random() < 0.1 * user.skills.mysticism);
     if (roll < 0.5) pool = pool.filter(e => e.rarity === "common");
     else if (roll < 0.8) pool = pool.filter(e => e.rarity === "uncommon");
@@ -304,7 +337,7 @@ export async function handleLarp(message: Message, args: string[]): Promise<void
   const outro = randomFrom(LARP_OUTROS);
   const powerData = randomFrom(LARP_POWER);
   const powerNum = Math.min(100, Math.floor((Math.random() * 100 + 1) * (1 + powerBonus)));
-  const danger = user.class === "necromancer" ? 10 : Math.floor(Math.random() * 10) + 1;
+  const danger = user.class === "necromancer" || isJobLarp ? 10 : Math.floor(Math.random() * 10) + 1;
   const color = randomFrom(COLORS);
   const rank = getRank(user.points);
   const xpNeeded = getXpForLevel(user.level);
@@ -357,6 +390,8 @@ async function showLarpHelp(message: Message) {
     .setDescription("The greatest LARP system ever created.")
     .addFields(
       { name: "🎯 Basic", value: "`su!larp <target>` - Transform!" },
+      { name: "💀 Creatures", value: "🐉 dragon | 🧙 wizard | ⚔️ knight\n⚡ god | 😈 demon | 🥷 ninja\n🏴‍☠️ pirate | 🤖 robot | 🐱 cat | 🐶 dog" },
+      { name: "💀 DEADLY JOBS", value: "💼 job | 📋 job application\n👔 CEO | 📎 intern | 📊 manager\n⚖️ lawyer | 💉 doctor | ⚙️ engineer\n💻 programmer | 👨‍🍳 chef | 🍽️ waiter\n🛒 retail | 💳 Karen" },
       { name: "📊 Stats", value: "`su!larp profile` - View your stats\n`su!larp achievements` - View achievements" },
       { name: "⚔️ Classes", value: "`su!larp class <name>` - Pick a class" },
       { name: "💪 Skills", value: "`su!larp skills` - View skills\n`su!larp skills <skill>` - Level up" },
