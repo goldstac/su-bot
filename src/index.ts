@@ -13,6 +13,7 @@ import { handleCredits } from "./commands/credits";
 import { handleVersion } from "./commands/version";
 import { handleHelp } from "./commands/help";
 import { handleAfk, checkAfkRemove, checkAfkMention } from "./commands/afk";
+import { handleLarp } from "./commands/larp";
 
 const PREFIX = "su!";
 const processed = new Set<string>();
@@ -157,6 +158,8 @@ client.on(Events.MessageCreate, async (message: Message) => {
     await handleHelp(message);
   } else if (command === "afk") {
     await handleAfk(message, args);
+  } else if (command === "larp") {
+    await handleLarp(message, args);
   }
 });
 
