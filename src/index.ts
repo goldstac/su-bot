@@ -146,8 +146,9 @@ client.on(Events.MessageCreate, async (message: Message) => {
   const args = message.content.slice(PREFIX.length).trim().split(/\s+/);
   const command = args.shift()?.toLowerCase();
 
-  if (command === "smite") {
-    await handleSmite(message, args);
+  if (command === "smite" || command === "smite.larp") {
+    const isLarpSmite = command === "smite.larp";
+    await handleSmite(message, args, isLarpSmite);
   } else if (command === "ping") {
     await handlePing(message);
   } else if (command === "credits") {
