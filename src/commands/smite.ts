@@ -28,8 +28,27 @@ const SMITE_REASONS = [
   "for dying to fire giant",
 ];
 
-function randomReason(): string {
-  return SMITE_REASONS[Math.floor(Math.random() * SMITE_REASONS.length)];
+const LARP_SMITE_REASONS = [
+  "for their terrible larp application",
+  "for larping as something unworthy",
+  "for failing the larp interview",
+  "for low larp power level",
+  "for not meeting larp qualifications",
+  "for violating larp policy",
+  "for excessive larping without a permit",
+  "for refusing to larp properly",
+  "for being a larp fraud",
+  "for crimes against larpkind",
+  "for larping while unqualified",
+  "for failing the larp background check",
+  "for larp insubordination",
+  "for illegal larp activities",
+  "for larp tax evasion",
+];
+
+function randomReason(isLarp: boolean): string {
+  const reasons = isLarp ? LARP_SMITE_REASONS : SMITE_REASONS;
+  return reasons[Math.floor(Math.random() * reasons.length)];
 }
 
 async function fetchAvatarBuffer(user: User): Promise<Buffer | null> {
@@ -62,7 +81,8 @@ function parseArgs(args: string[]): { targetArg: string | null; customReason: st
 
 export async function handleSmite(
   message: Message,
-  args: string[]
+  args: string[],
+  isLarp: boolean = false
 ): Promise<void> {
   const { targetArg, customReason } = parseArgs(args);
 
@@ -75,7 +95,7 @@ export async function handleSmite(
   if (!target) {
     const embed = new EmbedBuilder()
       .setColor(0xffd700)
-      .setDescription("⚡ You must mention someone to smite! `su!smite @user`")
+      .setDescription(`⚡ You must mention someone to smite! \`${isLarp ? "su!smite.larp" : "su!smite"} @user\``)
       .setFooter({ text: "No user, no root." });
     await message.channel.send({ embeds: [embed] });
     return;
@@ -99,15 +119,17 @@ export async function handleSmite(
     return;
   }
 
-  const reason = customReason ? `for ${customReason}` : randomReason();
+  const reason = customReason ? `for ${customReason}` : randomReason(isLarp);
   const avatarBuffer = await fetchAvatarBuffer(target);
   const frameCount = getFrameCount();
 
   // Initial message
   const startEmbed = new EmbedBuilder()
-    .setColor(0x9900ff)
-    .setDescription(`⚡ ${message.author} is escalating to root...`)
-    .setFooter({ text: "Permission granted." });
+    .setColor(isLarp ? 0xff0066 : 0x9900ff)
+    .setDescription(isLarp
+      ? `💀 ${message.author} is initiating LARP TERMINATION PROTOCOL...`
+      : `⚡ ${message.author} is escalating to root...`)
+    .setFooter({ text: isLarp ? "LARP clearance granted." : "Permission granted." });
 
   const botMessage = await message.channel.send({ embeds: [startEmbed] });
 
@@ -121,8 +143,10 @@ export async function handleSmite(
     });
 
     const animEmbed = new EmbedBuilder()
-      .setColor(i === frameCount - 1 ? 0xffd700 : 0x9900ff)
-      .setDescription(`⚡ ${message.author} channels the **SMITE** upon ${target}!`)
+      .setColor(i === frameCount - 1 ? (isLarp ? 0xff0066 : 0xffd700) : (isLarp ? 0xff0066 : 0x9900ff))
+      .setDescription(isLarp
+        ? `💀 ${message.author} initiates **LARP TERMINATION** upon ${target}!`
+        : `⚡ ${message.author} channels the **SMITE** upon ${target}!`)
       .setImage("attachment://smite.png")
       .setFooter({ text: getFrameLabel(i) });
 
@@ -133,17 +157,19 @@ export async function handleSmite(
   await new Promise((r) => setTimeout(r, 800));
 
   const finalEmbed = new EmbedBuilder()
-    .setColor(0xff0000)
-    .setTitle("⚡ SMITE ⚡")
+    .setColor(isLarp ? 0xff0066 : 0xff0000)
+    .setTitle(isLarp ? "💀 LARP TERMINATED 💀" : "⚡ SMITE ⚡")
     .setDescription(
-      `${target} has been **SMITEN** ${reason}!`
+      isLarp
+        ? `${target} has been **TERMINATED FROM LARP DUTY** ${reason}!`
+        : `${target} has been **SMITEN** ${reason}!`
     )
     .addFields(
       { name: "Summoned by", value: `${message.author}`, inline: true },
-      { name: "Judgment", value: "Process terminated.", inline: true }
+      { name: "Judgment", value: isLarp ? "LARP access revoked." : "Process terminated.", inline: true }
     )
     .setThumbnail(target.displayAvatarURL({ extension: "png", size: 128 }))
-    .setFooter({ text: "Access revoked. ⚡" })
+    .setFooter({ text: isLarp ? "LARP terminated. 💀" : "Access revoked. ⚡" })
     .setTimestamp();
 
   await botMessage.edit({ embeds: [finalEmbed], files: [] });
