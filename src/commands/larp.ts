@@ -163,7 +163,7 @@ const LARP_JOB_EVENTS = [
 
 const LARP_EMOJIS: Record<string, string[]> = {
   dragon: ["🐉", "🔥", "💀"], wizard: ["🧙", "✨", "🔮"],
-  knight: ["⚔️", "🛡️", "🏰"], god: ["⚡", "👑", "🌟"],
+  knight: ["⚔️", "🛡️", "🏰"],
   demon: ["😈", "🔥", "💀"], ninja: ["🥷", "🗡️", "🌑"],
   pirate: ["🏴‍☠️", "⚓", "🗡️"], robot: ["🤖", "⚙️", "🔧"],
   cat: ["🐱", "😺", "😸"], dog: ["🐶", "🦴", "🐕"],
@@ -390,7 +390,7 @@ async function showLarpHelp(message: Message) {
     .setDescription("The greatest LARP system ever created.")
     .addFields(
       { name: "🎯 Basic", value: "`su!larp <target>` - Transform!" },
-      { name: "💀 Creatures", value: "🐉 dragon | 🧙 wizard | ⚔️ knight\n⚡ god | 😈 demon | 🥷 ninja\n🏴‍☠️ pirate | 🤖 robot | 🐱 cat | 🐶 dog" },
+      { name: "💀 Creatures", value: "🐉 dragon | 🧙 wizard | ⚔️ knight\n😈 demon | 🥷 ninja\n🏴‍☠️ pirate | 🤖 robot | 🐱 cat | 🐶 dog" },
       { name: "💀 DEADLY JOBS", value: "💼 job | 📋 job application\n👔 CEO | 📎 intern | 📊 manager\n⚖️ lawyer | 💉 doctor | ⚙️ engineer\n💻 programmer | 👨‍🍳 chef | 🍽️ waiter\n🛒 retail | 💳 Karen" },
       { name: "📊 Stats", value: "`su!larp profile` - View your stats\n`su!larp achievements` - View achievements" },
       { name: "⚔️ Classes", value: "`su!larp class <name>` - Pick a class" },
