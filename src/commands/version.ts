@@ -1,12 +1,11 @@
 import { Message, EmbedBuilder } from "discord.js";
-
-const VERSION = "1.0.0";
+import { VERSION, uptimeString } from "../state";
 
 export async function handleVersion(message: Message): Promise<void> {
   const embed = new EmbedBuilder()
     .setColor(0x00aaff)
     .setTitle("⚡ SU Bot")
-    .setDescription(`Version: **${VERSION}**`)
+    .setDescription(`Version: **${VERSION}**\nUptime: **${uptimeString()}**`)
     .setFooter({ text: "Powered by Li Productions ⚡" })
     .setTimestamp();
 

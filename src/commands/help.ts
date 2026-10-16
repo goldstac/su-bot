@@ -6,16 +6,11 @@ export async function handleHelp(message: Message): Promise<void> {
     .setTitle("⚡ SU Bot Commands")
     .setDescription("All commands use the prefix `su!`")
     .addFields(
-      { name: "su!smite @user", value: "Smite a user with animated lightning" },
-      { name: "su!smite @user ?r reason", value: "Smite with a custom reason" },
-      { name: "su!smite.larp @user", value: "LARP TERMINATION - Extra deadly smite" },
-      { name: "su!afk [reason]", value: "Set yourself as AFK" },
-      { name: "su!larp <something>", value: "Larp as something" },
-      { name: "su!larp help", value: "View full LARP system" },
-      { name: "su!ping", value: "Check bot and API latency" },
-      { name: "su!version", value: "Show bot version" },
-      { name: "su!credits", value: "Show credits" },
-      { name: "su!help", value: "Show this message" }
+      { name: "⚡ Combat", value: "`su!smite @user` — Smite with animated lightning\n`su!smite @user ?r reason` — Custom reason\n`su!smite.larp @user` — Extra deadly LARP termination", inline: false },
+      { name: "🎭 LARP System", value: "`su!larp <something>` — Larp as something\n`su!larp help` — Full LARP system (classes, skills, battles)", inline: false },
+      { name: "🎰 Minigames", value: "`su!games` — All minigames (slots, coinflip, dice, trivia, rps & more)\n`su!work` — Earn free points every 30 min\n`su!games balance` — Check your wallet", inline: false },
+      { name: "📊 Bot Info", value: "`su!botstatus` — Live status: uptime, latency, features\n`su!changelog` — What's new\n`su!uptime` — Bot uptime\n`su!ping` — Latency check\n`su!version` — Bot version", inline: false },
+      { name: "💤 Utility", value: "`su!afk [reason]` — Set yourself AFK\n`su!credits` — Show credits\n`su!help` — This message", inline: false }
     )
     .setFooter({ text: "SU Bot v2.0 | Li Productions ⚡" })
     .setTimestamp();

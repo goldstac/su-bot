@@ -22,7 +22,7 @@ interface LarpUserData {
 
 const userData = new Map<string, LarpUserData>();
 
-function getUser(userId: string): LarpUserData {
+export function getUser(userId: string): LarpUserData {
   if (!userData.has(userId)) {
     userData.set(userId, {
       total: 0, streak: 0, lastTarget: "", points: 0, xp: 0,
@@ -225,6 +225,10 @@ function getRank(points: number) {
     if (points >= r.min) rank = r;
   }
   return rank;
+}
+
+export function getTopUsers(count: number): Array<[string, LarpUserData]> {
+  return [...userData.entries()].sort((a, b) => b[1].points - a[1].points).slice(0, count);
 }
 
 function checkAchievements(user: LarpUserData): string[] {
