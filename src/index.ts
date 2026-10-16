@@ -5,6 +5,7 @@ import {
   Events,
   Message,
   TextChannel,
+  EmbedBuilder,
 } from "discord.js";
 import express from "express";
 import { handleSmite } from "./commands/smite";
@@ -14,6 +15,9 @@ import { handleVersion } from "./commands/version";
 import { handleHelp } from "./commands/help";
 import { handleAfk, checkAfkRemove, checkAfkMention } from "./commands/afk";
 import { handleLarp } from "./commands/larp";
+import { handleGames } from "./commands/games";
+import { handleBotStatus, handleChangeLog } from "./commands/botstatus";
+import { botState, setMaintenance, addFeature, removeFeature, uptimeString, VERSION, STARTED_AT } from "./state";
 
 const PREFIX = "su!";
 const processed = new Set<string>();
@@ -27,7 +31,84 @@ app.get("/", (req, res) => {
 });
 
 app.get("/health", (req, res) => {
-  res.json({ status: "ok", uptime: process.uptime() });
+  res.json({
+    status: botState.maintenance ? "maintenance" : "ok",
+    uptime: process.uptime(),
+    uptimeHuman: uptimeString(),
+    version: VERSION,
+    startedAt: STARTED_AT,
+  });
+});
+
+// Bot status dashboard data (for CLI + monitoring)
+app.get("/api/botstatus", (req, res) => {
+  if (req.headers.authorization !== API_KEY) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  const mem = process.memoryUsage();
+  res.json({
+    version: VERSION,
+    status: botState.maintenance ? "maintenance" : "online",
+    maintenance: botState.maintenance,
+    maintenanceReason: botState.maintenanceReason,
+    uptime: process.uptime(),
+    uptimeHuman: uptimeString(),
+    startedAt: STARTED_AT,
+    apiLatency: client.ws.ping,
+    memoryMB: +(mem.heapUsed / 1024 / 1024).toFixed(1),
+    guilds: client.guilds.cache.size,
+    users: client.users.cache.size,
+    features: botState.features,
+  });
+});
+
+// Maintenance mode toggle
+app.post("/api/maintenance", (req, res) => {
+  if (req.headers.authorization !== API_KEY) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  const { enabled, reason } = req.body;
+  if (typeof enabled !== "boolean") {
+    return res.status(400).json({ error: "enabled (true/false) required" });
+  }
+  setMaintenance(enabled, reason);
+  // Update bot activity to reflect maintenance
+  client.user?.setActivity(
+    enabled ? `🔧 Maintenance: ${reason || "back soon"}` : "sudo su!smite @someone",
+    { type: 0 }
+  );
+  res.json({ success: true, maintenance: enabled, reason: botState.maintenanceReason });
+});
+
+// Feature list management
+app.get("/api/features", (req, res) => {
+  if (req.headers.authorization !== API_KEY) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  res.json({ features: botState.features });
+});
+
+app.post("/api/features", (req, res) => {
+  if (req.headers.authorization !== API_KEY) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  const { action, name, desc, emoji } = req.body;
+  if (!action || !name) {
+    return res.status(400).json({ error: "action (add/remove) and name required" });
+  }
+  if (action === "add") {
+    const ok = addFeature(name, desc || "", emoji);
+    return ok
+      ? res.json({ success: true, features: botState.features })
+      : res.status(409).json({ error: `Feature "${name}" already exists` });
+  }
+  if (action === "remove") {
+    const ok = removeFeature(name);
+    return ok
+      ? res.json({ success: true, features: botState.features })
+      : res.status(404).json({ error: `Feature "${name}" not found` });
+  }
+  res.status(400).json({ error: "action must be add or remove" });
 });
 
 // API endpoints for su-client
@@ -146,6 +227,20 @@ client.on(Events.MessageCreate, async (message: Message) => {
   const args = message.content.slice(PREFIX.length).trim().split(/\s+/);
   const command = args.shift()?.toLowerCase();
 
+  // Maintenance mode: only allow status/info commands through
+  const allowedInMaintenance = ["botstatus", "status", "help", "ping", "uptime", "changelog"];
+  if (botState.maintenance && !allowedInMaintenance.includes(command || "")) {
+    const embed = new EmbedBuilder()
+      .setColor(0xff9900)
+      .setTitle("🔧 Under Maintenance")
+      .setDescription(
+        `The bot is currently under maintenance.\n\n> ${botState.maintenanceReason || "We'll be back soon!"}\n\n` +
+        `You can still use: ${allowedInMaintenance.map((c) => `\`su!${c}\``).join(", ")}`
+      );
+    await message.channel.send({ embeds: [embed] });
+    return;
+  }
+
   if (command === "smite" || command === "smite.larp") {
     const isLarpSmite = command === "smite.larp";
     await handleSmite(message, args, isLarpSmite);
@@ -161,6 +256,14 @@ client.on(Events.MessageCreate, async (message: Message) => {
     await handleAfk(message, args);
   } else if (command === "larp") {
     await handleLarp(message, args);
+  } else if (command === "games" || command === "game") {
+    await handleGames(message, args);
+  } else if (command === "botstatus" || command === "status") {
+    await handleBotStatus(message);
+  } else if (command === "changelog" || command === "new") {
+    await handleChangeLog(message);
+  } else if (command === "uptime") {
+    await message.channel.send({ content: `⏱️ Uptime: **${uptimeString()}**` });
   }
 });
 
