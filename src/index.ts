@@ -17,6 +17,8 @@ import { handleAfk, checkAfkRemove, checkAfkMention } from "./commands/afk";
 import { handleLarp } from "./commands/larp";
 import { handleGames } from "./commands/games";
 import { handleBotStatus, handleChangeLog } from "./commands/botstatus";
+import { handleTrack, handleFm } from "./commands/quran";
+import { redeemLinkCode, recordEvent, linkedCount } from "./quran";
 import { botState, setMaintenance, addFeature, removeFeature, uptimeString, VERSION, STARTED_AT } from "./state";
 
 const PREFIX = "su!";
@@ -109,6 +111,36 @@ app.post("/api/features", (req, res) => {
       : res.status(404).json({ error: `Feature "${name}" not found` });
   }
   res.status(400).json({ error: "action must be add or remove" });
+});
+
+// ─────────────────────────────────────────────
+//  Quran app integration (no API key: the app links
+//  itself with a one-time code and gets its own token)
+// ─────────────────────────────────────────────
+app.post("/api/quran/link", (req, res) => {
+  const result = redeemLinkCode(req.body?.code);
+  if (!result.ok) {
+    return res.status(400).json(result);
+  }
+  console.log(`🎧 Quran app linked for ${result.user.name} (${result.user.id})`);
+  res.json(result);
+});
+
+app.post("/api/quran/event", (req, res) => {
+  const token = String(req.headers.authorization || "").replace(/^Bearer\s+/i, "");
+  const result = recordEvent(token, req.body);
+  if (!result.ok) {
+    const status = result.error === "Unknown or revoked token" ? 401 : 400;
+    return res.status(status).json(result);
+  }
+  res.json({ ok: true });
+});
+
+app.get("/api/quran/stats", (req, res) => {
+  if (req.headers.authorization !== API_KEY) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  res.json({ linked: linkedCount() });
 });
 
 // API endpoints for su-client
@@ -228,7 +260,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
   const command = args.shift()?.toLowerCase();
 
   // Maintenance mode: only allow status/info commands through
-  const allowedInMaintenance = ["botstatus", "status", "help", "ping", "uptime", "changelog"];
+  const allowedInMaintenance = ["botstatus", "status", "help", "ping", "uptime", "changelog", "track", "fm"];
   if (botState.maintenance && !allowedInMaintenance.includes(command || "")) {
     const embed = new EmbedBuilder()
       .setColor(0xff9900)
@@ -264,6 +296,10 @@ client.on(Events.MessageCreate, async (message: Message) => {
     await handleChangeLog(message);
   } else if (command === "uptime") {
     await message.channel.send({ content: `⏱️ Uptime: **${uptimeString()}**` });
+  } else if (command === "track") {
+    await handleTrack(message, args);
+  } else if (command === "fm" || command === "quranfm") {
+    await handleFm(message, args);
   }
 });
 
