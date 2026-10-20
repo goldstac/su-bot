@@ -13,6 +13,10 @@ Like `sudo su`, but for smiting mortals.
 | `su!games` | Minigames: slots, coinflip, dice, trivia, RPS & more |
 | `su!work` | Earn free points (30 min cooldown) |
 | `su!afk [reason]` | Set yourself as AFK |
+| `su!track` | What nasheed or surah you are listening to right now |
+| `su!track link` | Connect your Quran app to the bot |
+| `su!fm` | How many times you listened to what |
+| `su!fm recent` | Your last 10 plays |
 | `su!botstatus` | Live bot status: uptime, latency, memory, features |
 | `su!changelog` | See what's new |
 | `su!uptime` | Show bot uptime |
@@ -36,6 +40,28 @@ All games share one wallet with the LARP system — gamble your LARP points:
 | 💼 Work | `su!work` | free points, 30 min cooldown |
 
 Bets accept a number or `all`. Use `su!games balance` to check your wallet and `su!games leaderboard` for the richest players.
+
+## Quran & Nasheed Tracking
+
+Link the [Quran app](https://github.com/goldstac/quran) and the bot keeps up with what you listen to: now playing, play counts, top nasheeds, top reciters, and how much time you spent listening.
+
+1. Run `su!track link` in Discord to get a 6 character code (valid for 10 minutes)
+2. Open the Quran app, go to **Settings → Discord bot**
+3. Paste the code and hit **Link**
+
+| Command | Description |
+|---------|-------------|
+| `su!track` | Now playing card with a live progress bar |
+| `su!track @user` | What someone else is listening to |
+| `su!track link` | Generate a fresh link code |
+| `su!track unlink` | Stop the app from reporting (stats are kept) |
+| `su!track off` / `su!track on` | Pause / resume recording your plays |
+| `su!fm` | All time stats: plays, time, top nasheeds, top channels, Quran vs nasheeds split |
+| `su!fm week` / `su!fm month` | Same breakdown for the last 7 or 30 days |
+| `su!fm @user week` | Peek at someone else's week |
+| `su!fm recent` | Your last 10 plays with relative times |
+
+Privacy: hiding a single nasheed in the app (the eye button on a row) keeps that nasheed out of the bot entirely, and `su!track off` turns recording off from Discord. Stats live in `data/quran.json` on the bot.
 
 ## Bot Status & Maintenance
 
@@ -78,8 +104,11 @@ bun run dev
 | `/api/nickname` | POST | Set bot nickname |
 | `/api/guilds` | GET | List servers |
 | `/api/channels/:guildId` | GET | List channels |
+| `/api/quran/link` | POST | Exchange a `su!track link` code for an app token — public |
+| `/api/quran/event` | POST | Playback events from the Quran app (per-user token) — public |
+| `/api/quran/stats` | GET | How many apps are linked |
 
-All `/api/*` endpoints require the `Authorization: <API_KEY>` header.
+All `/api/*` endpoints require the `Authorization: <API_KEY>` header, except `/api/quran/link` and `/api/quran/event`, which use the per-user token from the link flow.
 
 ## Hosting on Render
 

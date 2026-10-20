@@ -3,7 +3,7 @@
 // ─────────────────────────────────────────────
 
 export const STARTED_AT = Date.now();
-export const VERSION = "3.0.0";
+export const VERSION = "3.1.0";
 
 export const botState = {
   maintenance: false,
@@ -13,6 +13,7 @@ export const botState = {
     { name: "🎭 LARP System", desc: "The ultimate transformation experience", emoji: "🎭" },
     { name: "🎰 Minigames", desc: "Slots, coinflip, dice, trivia & more", emoji: "🎰" },
     { name: "💤 AFK System", desc: "AFK notices when users return", emoji: "💤" },
+    { name: "🎧 Quran Tracking", desc: "su!track now playing and su!fm listening stats from the Quran app", emoji: "🎧" },
     { name: "🔧 SU Client CLI", desc: "Remote bot control from your terminal", emoji: "🔧" },
   ],
 };
