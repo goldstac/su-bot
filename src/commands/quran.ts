@@ -1,4 +1,5 @@
 import { Message, EmbedBuilder } from "discord.js";
+import type { QSong } from "../quran";
 import {
   createLinkCode,
   elapsed,
@@ -10,41 +11,65 @@ import {
   recentPlays,
   relative,
   setTracking,
-  songLabel,
   summarize,
   unlinkUser,
 } from "../quran";
 
 const GREEN = 0x1db954;
 const GOLD = 0xc9a86c;
+const AMBER = 0xff9900;
+const GREY = 0x808080;
+const APP_ICON = "https://raw.githubusercontent.com/goldstac/quran/main/app_logo.png";
+
+const APP = "Quran app";
 
 function colorFor(kind: string): number {
   return kind === "quran" ? GOLD : GREEN;
 }
 
+function card(color: number, context: string, title: string): EmbedBuilder {
+  return new EmbedBuilder().setColor(color).setAuthor({ name: context, iconURL: APP_ICON }).setTitle(title);
+}
+
+function clamp(text: string, max = 58): string {
+  return text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
+}
+
+function count(n: number, unit: string): string {
+  return `${n.toLocaleString()} ${unit}${n === 1 ? "" : "s"}`;
+}
+
+function statLine(plays: number, seconds: number): string {
+  return seconds > 0 ? `${count(plays, "play")} · ${formatDuration(seconds)}` : count(plays, "play");
+}
+
+function sourceName(song: QSong): string {
+  if (song.kind === "quran") return "Quran";
+  if (song.local) return "Your file";
+  return "Nasheed";
+}
+
 function notLinkedEmbed(name: string, isSelf: boolean): EmbedBuilder {
-  const embed = new EmbedBuilder()
-    .setColor(GREEN)
-    .setTitle("🎧 Quran app not linked")
-    .setDescription(
-      isSelf
-        ? `Run \`su!track link\` to connect the app, then paste the code in **Settings → Discord bot**.\n\nOnce linked, this shows what you are listening to and \`su!fm\` counts your plays.`
-        : `**${name}** has not linked the Quran app yet.`
-    )
-    .setFooter({ text: "Quran app • Settings → Discord bot" });
-  return embed;
+  return card(GREY, APP, "Not linked").setDescription(
+    isSelf
+      ? "Run `su!track link` for a code, then paste it in the app under **Settings → Discord bot**."
+      : `**${name}** has not linked the Quran app.`
+  );
 }
 
 function nothingPlayingEmbed(name: string, isSelf: boolean): EmbedBuilder {
-  return new EmbedBuilder()
-    .setColor(0x5865f2)
-    .setTitle(isSelf ? "🎧 Nothing playing" : `🎧 ${name} is not listening`)
-    .setDescription(
-      isSelf
-        ? "Open the Quran app and play a nasheed or a surah, then run `su!track` again.\n\n`su!fm` shows what you have listened to so far."
-        : "Nothing is playing in their Quran app right now."
-    )
-    .setFooter({ text: "su!track link to connect your own app" });
+  const embed = card(GREY, APP, isSelf ? "Nothing playing" : `${name} has nothing playing`).setDescription(
+    isSelf ? "Play something in the Quran app, then run `su!track` again." : "Nothing is playing in their app right now."
+  );
+  if (isSelf) embed.setFooter({ text: "su!fm for what you have played" });
+  return embed;
+}
+
+function youTubeUrl(song: QSong): string | undefined {
+  if (song.kind !== "quran" && !song.local && /^[A-Za-z0-9_-]{11}$/.test(song.id)) {
+    return `https://www.youtube.com/watch?v=${song.id}`;
+  }
+  return undefined;
 }
 
 // ─────────────────────────────────────────────
@@ -55,22 +80,14 @@ export async function handleTrack(message: Message, args: string[]): Promise<voi
 
   if (["link", "connect"].includes(sub)) {
     const code = createLinkCode(message.author.id, message.author.username);
-    const embed = new EmbedBuilder()
-      .setColor(GREEN)
-      .setTitle("🎧 Link your Quran app")
+    const embed = card(GREEN, APP, "Link your app")
       .setDescription(
-        `**1.** Copy this code\n\`\`\`\n${code}\n\`\`\`\n` +
-          `**2.** Open the Quran app and go to **Settings → Discord bot**\n` +
+        `\`\`\`\n${code}\n\`\`\`\n` +
+          `**1.** Copy the code above\n` +
+          `**2.** Open the app and go to **Settings → Discord bot**\n` +
           `**3.** Paste it in **Link code** and hit **Link**`
       )
-      .addFields({
-        name: "What you get",
-        value:
-          "`su!track` — what you are listening to right now\n" +
-          "`su!fm` — how many times you have listened to what\n" +
-          "`su!track off` — stop reporting any of it",
-      })
-      .setFooter({ text: `Code expires in 10 minutes • ${message.author.username}` })
+      .setFooter({ text: "Code expires in 10 minutes" })
       .setTimestamp();
     await message.channel.send({ embeds: [embed] });
     return;
@@ -78,42 +95,37 @@ export async function handleTrack(message: Message, args: string[]): Promise<voi
 
   if (["unlink", "disconnect"].includes(sub)) {
     const existed = unlinkUser(message.author.id);
-    const embed = new EmbedBuilder()
-      .setColor(existed ? 0xff9900 : 0x808080)
-      .setTitle(existed ? "🔌 Quran app unlinked" : "Nothing to unlink")
-      .setDescription(
-        existed
-          ? "The app can no longer report what you listen to. Your saved stats stay on the bot, so `su!track link` brings everything back."
-          : "You do not have the Quran app linked. Use `su!track link` to connect it."
-      );
+    const embed = card(existed ? AMBER : GREY, APP, existed ? "App unlinked" : "Nothing to unlink").setDescription(
+      existed
+        ? "Your saved stats stay on the bot, so `su!track link` brings everything back."
+        : "You do not have the app linked. `su!track link` connects it."
+    );
     await message.channel.send({ embeds: [embed] });
     return;
   }
 
   if (sub === "off" || sub === "pause") {
-    const user = setTracking(message.author.id, false);
-    const embed = new EmbedBuilder()
-      .setColor(0xff9900)
-      .setTitle("🕶️ Tracking off")
-      .setDescription(
-        user
-          ? "Nothing you play gets recorded any more, and `su!track` shows nothing playing. `su!track on` turns it back on."
-          : "Link the app first with `su!track link`."
-      );
+    if (!getLinkedUser(message.author.id)) {
+      await message.channel.send({ embeds: [notLinkedEmbed(message.author.username, true)] });
+      return;
+    }
+    setTracking(message.author.id, false);
+    const embed = card(AMBER, APP, "Tracking off").setDescription(
+      "Nothing you play gets recorded, and `su!track` shows nothing playing. `su!track on` turns it back on."
+    );
     await message.channel.send({ embeds: [embed] });
     return;
   }
 
   if (sub === "on" || sub === "resume") {
-    const user = setTracking(message.author.id, true);
-    const embed = new EmbedBuilder()
-      .setColor(GREEN)
-      .setTitle("🎧 Tracking on")
-      .setDescription(
-        user
-          ? "Plays are counted again. Hiding a single nasheed in the app still keeps that one out of here."
-          : "Link the app first with `su!track link`."
-      );
+    if (!getLinkedUser(message.author.id)) {
+      await message.channel.send({ embeds: [notLinkedEmbed(message.author.username, true)] });
+      return;
+    }
+    setTracking(message.author.id, true);
+    const embed = card(GREEN, APP, "Tracking on").setDescription(
+      "Plays are counted again. A nasheed hidden with the eye button in the app stays hidden."
+    );
     await message.channel.send({ embeds: [embed] });
     return;
   }
@@ -130,15 +142,15 @@ export async function handleTrack(message: Message, args: string[]): Promise<voi
   }
 
   if (!user.tracking) {
-    const embed = new EmbedBuilder()
-      .setColor(0xff9900)
-      .setTitle("🕶️ Tracking is off")
-      .setDescription(
-        isSelf
-          ? "You turned tracking off, so nothing is recorded. `su!track on` re-enables it."
-          : `**${name}** has tracking turned off.`
-      );
-    await message.channel.send({ embeds: [embed] });
+    await message.channel.send({
+      embeds: [
+        card(AMBER, APP, "Tracking is off").setDescription(
+          isSelf
+            ? "You turned tracking off, so nothing is recorded. `su!track on` re-enables it."
+            : `**${name}** has tracking turned off.`
+        ),
+      ],
+    });
     return;
   }
 
@@ -151,26 +163,26 @@ export async function handleTrack(message: Message, args: string[]): Promise<voi
   const song = now.song;
   const position = elapsed(now);
   const bar = progressBar(position, song.duration);
-  const state = now.playing ? "▶️ Playing" : "⏸️ Paused";
-  const lines: string[] = [
-    `**${song.title}**`,
-    songLabel(song),
-  ];
-  if (bar) lines.push("", `\`${bar}\``, `\`${clockDuration(position)} / ${clockDuration(song.duration)}\` ${state}`);
-  else lines.push("", state);
-
+  const stat = user.stats.songs[song.id];
   const stats = summarize(user, "all");
-  const embed = new EmbedBuilder()
-    .setColor(colorFor(song.kind))
-    .setAuthor({ name: isSelf ? "You are listening to" : `${name} is listening to` })
+
+  const lines = [song.channel];
+  if (bar) lines.push("", `\`${bar}\``, `\`${clockDuration(position)} / ${clockDuration(song.duration)}\``);
+
+  const state = now.playing ? "now playing" : "paused";
+  const context = isSelf ? `You · ${state}` : `${name} · ${state}`;
+  const embed = card(colorFor(song.kind), context, song.title)
     .setDescription(lines.join("\n"))
     .addFields(
-      { name: "Source", value: song.kind === "quran" ? "📖 Quran" : song.local ? "🎧 Your own file" : "📻 Nasheed", inline: true },
-      { name: "Total plays", value: `**${stats.totalPlays.toLocaleString()}**`, inline: true },
-      { name: "Listened", value: `**${formatDuration(user.stats.seconds)}**`, inline: true }
+      { name: "Type", value: sourceName(song), inline: true },
+      { name: "This track", value: statLine(stat?.count ?? 0, stat?.seconds ?? 0), inline: true },
+      { name: "All time", value: statLine(stats.totalPlays, user.stats.seconds), inline: true }
     )
-    .setFooter({ text: `su!fm for the full breakdown • ${isSelf ? "su!track off to stop reporting" : name}` })
+    .setFooter({ text: isSelf ? "su!fm" : "su!fm @user" })
     .setTimestamp();
+
+  const url = youTubeUrl(song);
+  if (url) embed.setURL(url);
 
   await message.channel.send({ embeds: [embed] });
 }
@@ -202,58 +214,50 @@ export async function handleFm(message: Message, args: string[]): Promise<void> 
 
   if (words.includes("recent") || words.includes("history")) {
     const plays = recentPlays(user, 10);
-    const embed = new EmbedBuilder()
-      .setColor(GREEN)
-      .setTitle(`🕘 Recent plays — ${isSelf ? "you" : name}`)
-      .setDescription(
-        plays.length
-          ? plays.map((p, i) => `\`${i + 1}.\` **${p.title}** • ${p.kind === "quran" ? "📖" : "📻"} ${p.channel} — *${relative(p.at)}*`).join("\n")
-          : "Nothing recorded yet. Play something in the Quran app."
-      )
-      .setFooter({ text: "su!fm week/month for counts • su!fm @user to peek at someone else" })
-      .setTimestamp();
-    await message.channel.send({ embeds: [embed] });
+    const lines = plays.map(
+      (p, i) =>
+        `\`${String(i + 1).padStart(2, " ")}\` ${p.kind === "quran" ? "📖" : "📻"} **${clamp(p.title)}** · ${p.channel} · ${relative(p.at)}`
+    );
+    await message.channel.send({
+      embeds: [
+        card(GREEN, isSelf ? "Your listening" : `${name}'s listening`, "Recent plays")
+          .setDescription(lines.length ? lines.join("\n") : "Nothing recorded yet. Play something in the Quran app.")
+          .setFooter({ text: "su!fm week · su!fm month" })
+          .setTimestamp(),
+      ],
+    });
     return;
   }
 
   const s = summarize(user, period);
-  const topSongs = s.topSongs.length
-    ? s.topSongs
-        .map(
-          (song, i) =>
-            `\`${i + 1}.\` **${song.title}** — ${song.count}x${song.seconds ? ` (${formatDuration(song.seconds)})` : ""}`
-        )
-        .join("\n")
-    : "*Nothing in this period*";
+  const embed = card(GREEN, isSelf ? "Your listening" : `${name}'s listening`, meta.label);
 
-  const topChannels = s.topChannels.length
-    ? s.topChannels.map((c, i) => `\`${i + 1}.\` **${c.channel}** — ${c.count}x`).join("\n")
-    : "*Nothing in this period*";
+  if (!s.plays) {
+    embed.setDescription(period === "all" ? "Nothing recorded yet." : `Nothing in the ${meta.window}.`);
+    await message.channel.send({ embeds: [embed] });
+    return;
+  }
 
-  const split = s.plays
-    ? `📖 Quran \`${s.quranPlays}\` • 📻 Nasheeds \`${s.nasheedPlays}\``
-    : "*Nothing in this period*";
+  const topSongs = s.topSongs
+    .map((song, i) => `\`${i + 1}\` **${clamp(song.title)}** · ${song.count}x${song.seconds ? ` · ${formatDuration(song.seconds)}` : ""}`)
+    .join("\n");
 
-  const embed = new EmbedBuilder()
-    .setColor(GREEN)
-    .setAuthor({ name: `${isSelf ? "Your" : `${name}'s`} listening — ${meta.label}` })
+  const topChannels = s.topChannels
+    .map((c, i) => `\`${i + 1}\` **${clamp(c.channel, 40)}** · ${c.count}x`)
+    .join("\n");
+
+  embed
     .setDescription(
-      s.plays
-        ? `**${s.plays.toLocaleString()}** plays • **${s.unique}** nasheeds • **${formatDuration(s.seconds)}** listened`
-        : "Nothing recorded in this period yet."
+      `**${count(s.plays, "play")}**\n📖 ${count(s.quranPlays, "quran play")} • 📻 ${count(s.nasheedPlays, "nasheed play")}`
     )
     .addFields(
-      { name: "🏆 Top nasheeds", value: topSongs },
-      { name: "🎙️ Top channels & reciters", value: topChannels },
-      { name: "🧭 Split", value: split, inline: true },
-      { name: "📅 Active days", value: `\`${s.activeDays}\``, inline: true },
-      { name: "📈 All time", value: `\`${s.totalPlays.toLocaleString()}\` plays • \`${formatDuration(user.stats.seconds)}\``, inline: true }
+      { name: "Listened", value: formatDuration(s.seconds), inline: true },
+      { name: "Unique", value: s.unique.toLocaleString(), inline: true },
+      { name: "Days active", value: s.activeDays.toLocaleString(), inline: true },
+      { name: "Top nasheeds", value: topSongs || "*Nothing in this period*" },
+      { name: "Top channels", value: topChannels || "*Nothing in this period*" }
     )
-    .setFooter({
-      text: isSelf
-        ? `Window: ${meta.window} • su!fm recent for history`
-        : `Window: ${meta.window} • su!fm recent @user for history`,
-    })
+    .setFooter({ text: isSelf ? "su!fm recent" : "su!fm recent @user" })
     .setTimestamp();
 
   await message.channel.send({ embeds: [embed] });

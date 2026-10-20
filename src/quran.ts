@@ -148,11 +148,11 @@ export function relative(ts: number): string {
   return `${days}d ago`;
 }
 
-export function progressBar(position: number, duration: number, size = 16): string {
+export function progressBar(position: number, duration: number, size = 20): string {
   if (!duration || duration <= 0) return "";
   const ratio = Math.min(1, Math.max(0, position / duration));
   const filled = Math.round(ratio * size);
-  return "▬".repeat(filled) + "🔘" + "─".repeat(Math.max(0, size - filled + 1));
+  return "█".repeat(filled) + "░".repeat(size - filled);
 }
 
 function normalizeSong(raw: unknown): QSong | null {
@@ -170,16 +170,6 @@ function normalizeSong(raw: unknown): QSong | null {
     duration: Number.isFinite(duration) && duration > 0 ? duration : 0,
     local: !!r.local,
   };
-}
-
-function sourceLabel(song: QSong): string {
-  if (song.kind === "quran") return "📖 Quran";
-  if (song.local) return "🎧 Your own file";
-  return "📻 Nasheed";
-}
-
-export function songLabel(song: QSong): string {
-  return `${sourceLabel(song)} • ${song.channel}`;
 }
 
 // ── linking ──────────────────────────────────

@@ -56,7 +56,7 @@ Link the [Quran app](https://github.com/goldstac/quran) and the bot keeps up wit
 | `su!track link` | Generate a fresh link code |
 | `su!track unlink` | Stop the app from reporting (stats are kept) |
 | `su!track off` / `su!track on` | Pause / resume recording your plays |
-| `su!fm` | All time stats: plays, time, top nasheeds, top channels, Quran vs nasheeds split |
+| `su!fm` | All time stats: plays, listen time, unique tracks, days active, top nasheeds, top channels, Quran vs nasheeds split |
 | `su!fm week` / `su!fm month` | Same breakdown for the last 7 or 30 days |
 | `su!fm @user week` | Peek at someone else's week |
 | `su!fm recent` | Your last 10 plays with relative times |
